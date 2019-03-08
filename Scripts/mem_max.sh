@@ -1,4 +1,5 @@
 #!/bin/bash
-. ./funcs.sh
+dir=`dirname $0`
+. $dir/funcs.sh
 
 calculateASRSMemMaxMin $*
