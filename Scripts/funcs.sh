@@ -87,3 +87,24 @@ function calculateRubyCPUTop() {
   fi
   calculateCPUTopInternal "rub" $tailCheck $headCheck
 }
+
+function filter_date_prefix() {
+  local app_server_log=$1
+  local output_dir=$2
+  local timestamp=`date +%Y%m%d%H%M%S`
+  local tmpOut=/tmp/appserver${timestamp}.log
+  local dateOut=/tmp/appserverdate${timestamp}.txt
+  grep "drop" $app_server_log > $tmpOut
+  # output  [2019:01:24:04:53:29.167]:
+  # output  [2019:01:24:04:53:29
+  # output [2019:01:24
+  awk '{print $1}' $tmpOut| awk -F . '{print $1}'| awk -F : '{printf("%s:%s:%s\n", $1,$2,$3)}'| awk -F \[ '{print $2}'|  sort|uniq > $dateOut
+  local line dateDir
+  while read line
+  do
+    dateDir=$line
+    mkdir -p $output_dir/$dateDir
+    grep "$line" $tmpOut >$output_dir/$dateDir/drop.txt
+  done < $dateOut
+  rm $tmpOut $dateOut
+}
