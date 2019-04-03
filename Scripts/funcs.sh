@@ -26,12 +26,13 @@ function calculateCPUTopInternal()
   local key=$1
   local tailCheck=$2
   local headCheck=$3
+  local fileReg="$4"
   local i
   local totalTop
   local nonZero
   local nonZeroPer
   local ministat result tmpResult
-  for i in `ls signalr*top.txt`
+  for i in `ls $fileReg`
   do
     tmpResult=`grep $key $i|tail -n $tailCheck|head -n $headCheck`
     totalTop=`echo "$tmpResult"|awk '{print $9}'|wc -l`
@@ -74,7 +75,7 @@ function calculateASRSCPUTop() {
      tailCheck=$1
      headCheck=$2
   fi
-  calculateCPUTopInternal "Micro" $tailCheck $headCheck
+  calculateCPUTopInternal "Micro" $tailCheck $headCheck "signalr*top.txt"
 }
 
 function calculateRubyCPUTop() {
@@ -85,7 +86,18 @@ function calculateRubyCPUTop() {
      tailCheck=$1
      headCheck=$2
   fi
-  calculateCPUTopInternal "rub" $tailCheck $headCheck
+  calculateCPUTopInternal "rub" $tailCheck $headCheck "signalr*top.txt"
+}
+
+function calculateAppServerCPUTop() {
+  local tailCheck=50
+  local headCheck=30
+  if [ $# -eq 2 ]
+  then
+     tailCheck=$1
+     headCheck=$2
+  fi
+  calculateCPUTopInternal "dotnet" $tailCheck $headCheck "appserver*_top.txt"
 }
 
 function filter_date_prefix() {
