@@ -1,15 +1,48 @@
 #!/bin/bash
 
+function dump_trace_the_same_conn() {
+  local traceId=$1
+  local asrs_log=$2
+  local tracedLog=`grep $traceId $asrs_log`
+  local line timestamp eventName duration
+  local url
+  echo "$tracedLog"|while read line
+  do
+    timestamp=`echo "$line"|jq "._timestampUtc"|tr -d '"'`
+    eventName=`echo "$line"|jq "._eventName"|tr -d '"'`
+    duration=`echo "$line"|jq ".duration"|tr -d '"'`
+    url=`echo "$line"|jq ".url"|tr -d '"'`
+    echo "$timestamp $eventName $url $duration"
+  done
+}
+
+function trace_server_connections_in_ASRS() {
+  local in=$1 # ASRS.log
+  local i traceId line
+  local postfix=`date +%Y%m%d%H%M%S`
+  local serverConnRaw=/tmp/serverConnRaw${postfix}
+  grep "New server connection" $in > $serverConnRaw
+  while read line
+  do
+    traceId=`echo "$line"|jq ".traceId"|tr -d '"'`
+    dump_trace_the_same_conn $traceId $in
+    #grep $traceId $in
+  done < $serverConnRaw
+  rm $serverConnRaw
+}
+
 function find_server_drop_ASRS() {
  local in=$1
+ local tmp_out=/tmp/serverdrop
  local line
- grep "ConnectedEnding" $in|grep hzperf > /tmp/serverdrop
+ grep "ConnectedEnding" $in|grep hzperf > $tmp_out
  while read line
  do
   timestamp=`echo "$line"|jq "._timestampUtc"|tr -d '"'`
   id=`echo "$line"|jq ".userId"|tr -d '"'`
   echo "$timestamp $id"
- done < /tmp/serverdrop
+ done < $tmp_out
+ rm $tmp_out
 }
 
 function find_all_ASRS_server_drop() {
