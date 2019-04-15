@@ -169,7 +169,13 @@ function filter_date_prefix() {
   do
     dateDir=$line
     mkdir -p $output_dir/$dateDir
-    grep "$line" $tmpOut >$output_dir/$dateDir/drop.txt
+    grep "$line" $tmpOut > $output_dir/$dateDir/drop.txt
+    # remove "]:"
+    sed -i -e 's/\]\://g' $output_dir/$dateDir/drop.txt
+    # remove "["
+    sed -i -e 's/\[//g' $output_dir/$dateDir/drop.txt
+    awk '{print $1 " " $3}' $output_dir/$dateDir/drop.txt > $output_dir/$dateDir/drop_sum.txt
+    rm $output_dir/$dateDir/drop.txt
   done < $dateOut
   rm $tmpOut $dateOut
 }
