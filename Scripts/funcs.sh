@@ -4,16 +4,36 @@ function dump_trace_the_same_conn() {
   local traceId=$1
   local asrs_log=$2
   local tracedLog=`grep $traceId $asrs_log`
-  local line timestamp eventName duration
-  local url
-  echo "$tracedLog"|while read line
+  local line timestamp eventName duration startTime endTime
+  local url cid uid
+  local lifeSpan userId
+  local tmpFile=/tmp/traceid`date +%Y%m%d%H%M%S`
+
+  echo "$tracedLog" > $tmpFile
+  while read line
   do
     timestamp=`echo "$line"|jq "._timestampUtc"|tr -d '"'`
     eventName=`echo "$line"|jq "._eventName"|tr -d '"'`
     duration=`echo "$line"|jq ".duration"|tr -d '"'`
     url=`echo "$line"|jq ".url"|tr -d '"'`
-    echo "$timestamp $eventName $url $duration"
-  done
+    uid=`echo "$line"|jq ".userId"|tr -d '"'`
+    if [ "$uid" != "null" ]
+    then
+       userId=$uid
+    fi
+    if [ "$url" != "null" ] && [ "$duration" == "null" ]
+    then
+       startTime=$timestamp
+       cid=`echo "$url"|awk -F \& '{print $2}'|awk -F = '{print $2}'`
+    fi
+    if [ "$duration" != "null" ]
+    then
+       endTime=$timestamp
+       lifeSpan=$duration
+    fi
+  done < $tmpFile
+  rm $tmpFile
+  echo " $cid $userId $startTime $endTime $lifeSpan"
 }
 
 function trace_server_connections_in_ASRS() {
