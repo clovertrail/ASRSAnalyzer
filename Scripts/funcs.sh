@@ -55,7 +55,7 @@ function find_server_drop_ASRS() {
  local in=$1
  local tmp_out=/tmp/serverdrop
  local line
- grep "ConnectedEnding" $in|grep hzperf > $tmp_out
+ grep "ConnectedEnding" $in|grep "SignalRServerConnection" > $tmp_out
  while read line
  do
   timestamp=`echo "$line"|jq "._timestampUtc"|tr -d '"'`
