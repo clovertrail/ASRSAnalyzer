@@ -1,4 +1,5 @@
 #!/bin/bash
+dir=`dirname $0`
 
 function dump_trace_the_same_conn() {
   local traceId=$1
@@ -36,6 +37,24 @@ function dump_trace_the_same_conn() {
   echo " $cid $userId $startTime $endTime $lifeSpan"
 }
 
+function dump_redis_timeout_exception_count() {
+  local asrs_log=$1
+  local line timestamp eventName
+  local tmpFile=/tmp/redistimeout`date +%Y%m%d%H%M%S`
+  grep "StackExchange.Redis.RedisTimeoutException" $asrs_log > $tmpFile
+  python $dir/parse_asrs_log.py -i $tmpFile -q counter|sort -k 1
+  rm $tmpFile
+}
+
+function dump_redis_timeout_exception_details() {
+  local asrs_log=$1
+  local line timestamp eventName
+  local tmpFile=/tmp/redistimeout`date +%Y%m%d%H%M%S`
+  grep "StackExchange.Redis.RedisTimeoutException" $asrs_log > $tmpFile
+  python $dir/parse_asrs_log.py -i $tmpFile -q details|sort -k 1 -t '|'
+  rm $tmpFile
+}
+
 function trace_server_connections_in_ASRS() {
   local in=$1 # ASRS.log
   local i traceId line
@@ -66,11 +85,24 @@ function find_server_drop_ASRS() {
 }
 
 function find_all_ASRS_server_drop() {
+  iterate_all_asrs_log find_server_drop_ASRS
+}
+
+function find_all_redis_timeout_count() {
+  iterate_all_asrs_log dump_redis_timeout_exception_count
+}
+
+function find_all_redis_timeout_details() {
+  iterate_all_asrs_log dump_redis_timeout_exception_details
+}
+
+function iterate_all_asrs_log() {
+  local callback=$1
   local i
   for i in `ls signalr*ASRS.txt`
   do
     echo "====$i====="
-    find_server_drop_ASRS $i
+    $callback $i
   done
 }
 
