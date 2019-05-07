@@ -37,20 +37,22 @@ function dump_trace_the_same_conn() {
   echo " $cid $userId $startTime $endTime $lifeSpan"
 }
 
-function dump_redis_timeout_exception_count() {
+function dump_exception_count() {
   local asrs_log=$1
   local line timestamp eventName
   local tmpFile=/tmp/redistimeout`date +%Y%m%d%H%M%S`
-  grep "StackExchange.Redis.RedisTimeoutException" $asrs_log > $tmpFile
+  #grep "StackExchange.Redis.RedisTimeoutException" $asrs_log > $tmpFile
+  grep $g_exp $asrs_log > $tmpFile
   python $dir/parse_asrs_log.py -i $tmpFile -q counter|sort -k 1
   rm $tmpFile
 }
 
-function dump_redis_timeout_exception_details() {
+function dump_exception_details() {
   local asrs_log=$1
   local line timestamp eventName
   local tmpFile=/tmp/redistimeout`date +%Y%m%d%H%M%S`
-  grep "StackExchange.Redis.RedisTimeoutException" $asrs_log > $tmpFile
+  grep $g_exp $asrs_log > $tmpFile
+  #grep "StackExchange.Redis.RedisTimeoutException" $asrs_log > $tmpFile
   python $dir/parse_asrs_log.py -i $tmpFile -q details|sort -k 1 -t '|'
   rm $tmpFile
 }
@@ -89,11 +91,23 @@ function find_all_ASRS_server_drop() {
 }
 
 function find_all_redis_timeout_count() {
-  iterate_all_asrs_log dump_redis_timeout_exception_count
+  g_exp="StackExchange.Redis.RedisTimeoutException"
+  iterate_all_asrs_log dump_exception_count
 }
 
 function find_all_redis_timeout_details() {
-  iterate_all_asrs_log dump_redis_timeout_exception_details
+  g_exp="StackExchange.Redis.RedisTimeoutException"
+  iterate_all_asrs_log dump_exception_details
+}
+
+function find_all_redis_conn_count() {
+  g_exp="StackExchange.Redis.RedisConnectionException"
+  iterate_all_asrs_log dump_exception_count
+}
+
+function find_all_redis_conn_details() {
+  g_exp="StackExchange.Redis.RedisConnectionException"
+  iterate_all_asrs_log dump_exception_details
 }
 
 function iterate_all_asrs_log() {
