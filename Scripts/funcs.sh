@@ -41,8 +41,12 @@ function dump_exception_count() {
   local asrs_log=$1
   local line timestamp eventName
   local tmpFile=/tmp/redistimeout`date +%Y%m%d%H%M%S`
-  #grep "StackExchange.Redis.RedisTimeoutException" $asrs_log > $tmpFile
-  grep $g_exp $asrs_log > $tmpFile
+  if [ "$g_exp2" == "" ]
+  then
+    grep "$g_exp" $asrs_log > $tmpFile
+  else
+    grep "$g_exp" $asrs_log|grep "$g_exp2" > $tmpFile
+  fi
   python $dir/parse_asrs_log.py -i $tmpFile -q counter|sort -k 1
   rm $tmpFile
 }
@@ -51,8 +55,12 @@ function dump_exception_details() {
   local asrs_log=$1
   local line timestamp eventName
   local tmpFile=/tmp/redistimeout`date +%Y%m%d%H%M%S`
-  grep $g_exp $asrs_log > $tmpFile
-  #grep "StackExchange.Redis.RedisTimeoutException" $asrs_log > $tmpFile
+  if [ "$g_exp2" == "" ]
+  then
+    grep "$g_exp" $asrs_log > $tmpFile
+  else
+    grep "$g_exp" $asrs_log|grep "$g_exp2" > $tmpFile
+  fi
   python $dir/parse_asrs_log.py -i $tmpFile -q details|sort -k 1 -t '|'
   rm $tmpFile
 }
@@ -92,21 +100,71 @@ function find_all_ASRS_server_drop() {
 
 function find_all_redis_timeout_count() {
   g_exp="StackExchange.Redis.RedisTimeoutException"
+  g_exp2=""
   iterate_all_asrs_log dump_exception_count
 }
 
 function find_all_redis_timeout_details() {
   g_exp="StackExchange.Redis.RedisTimeoutException"
+  g_exp2=""
   iterate_all_asrs_log dump_exception_details
 }
 
 function find_all_redis_conn_count() {
   g_exp="StackExchange.Redis.RedisConnectionException"
+  g_exp2=""
   iterate_all_asrs_log dump_exception_count
 }
 
 function find_all_redis_conn_details() {
   g_exp="StackExchange.Redis.RedisConnectionException"
+  g_exp2=""
+  iterate_all_asrs_log dump_exception_details
+}
+
+function find_all_redis_route_close_count() {
+  g_exp="Connection to Redis failed"
+  g_exp2="Microsoft.Azure.SignalR.Redis.RedisClient"
+  iterate_all_asrs_log dump_exception_count
+}
+
+function find_all_redis_route_restore_count() {
+  g_exp="Connection to Redis restored"
+  g_exp2="Microsoft.Azure.SignalR.Redis.RedisClient"
+  iterate_all_asrs_log dump_exception_count
+}
+
+function find_all_redis_route_close_details() {
+  g_exp="Connection to Redis failed"
+  g_exp2="Microsoft.Azure.SignalR.Redis.RedisClient"
+  iterate_all_asrs_log dump_exception_details
+}
+
+function find_all_redis_route_restore_details() {
+  g_exp="Connection to Redis restored"
+  g_exp2="Microsoft.Azure.SignalR.Redis.RedisClient"
+  iterate_all_asrs_log dump_exception_details
+}
+
+function find_all_redis_pubsub_close_count() {
+  g_exp="Connection to Redis failed"
+  g_exp2="Microsoft.Azure.SignalR.Redis.PubSubClient"
+  iterate_all_asrs_log dump_exception_count
+}
+
+function find_all_redis_pubsub_restore_count() {
+  g_exp="Starting heartbeat..."
+  iterate_all_asrs_log dump_exception_count
+}
+
+function find_all_redis_pubsub_close_details() {
+  g_exp="Connection to Redis failed"
+  g_exp2="Microsoft.Azure.SignalR.Redis.PubSubClient"
+  iterate_all_asrs_log dump_exception_details
+}
+
+function find_all_redis_pubsub_restore_details() {
+  g_exp="Starting heartbeat..."
   iterate_all_asrs_log dump_exception_details
 }
 

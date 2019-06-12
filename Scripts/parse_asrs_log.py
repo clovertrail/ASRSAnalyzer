@@ -22,13 +22,12 @@ def CategorizedWarns(infile):
    with open(infile) as f:
       for line in f:
          jData = json.loads(line, 'utf-8')
-         if (jData['_level'] == "WARN"):
-             timestamp = jData['_timestampUtc']
-             ts_fields = timestamp.split('.')
-             tmpl = jData['_template']
-             k=ts_fields[0]+tmpl
-             warnsCountDic[k] = warnsCountDic.get(k, 0) + 1
-             warnsDic[k] = json.dumps(jData)
+         timestamp = jData['_timestampUtc']
+         ts_fields = timestamp.split('.')
+         tmpl = jData['_template']
+         k=ts_fields[0]+tmpl
+         warnsCountDic[k] = warnsCountDic.get(k, 0) + 1
+         warnsDic[k] = json.dumps(jData)
    return (warnsCountDic,warnsDic)
 
 def details(dic):
