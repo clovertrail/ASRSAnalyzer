@@ -94,8 +94,26 @@ function find_server_drop_ASRS() {
  rm $tmp_out
 }
 
+function find_clients_drop_number_for_server_drop() {
+ local in=$1
+ local tmp_out=/tmp/serverdrop
+ local line count
+ grep "client connections connected to server connection" $in > $tmp_out
+ while read line
+ do
+  timestamp=`echo "$line"|jq "._timestampUtc"|tr -d '"'`
+  count=`echo "$line"|jq ".count"|tr -d '"'`
+  echo "$timestamp $count"
+ done < $tmp_out
+ rm $tmp_out
+}
+
 function find_all_ASRS_server_drop() {
   iterate_all_asrs_log find_server_drop_ASRS
+}
+
+function find_drop_client_count_for_server_drop() {
+  iterate_all_asrs_log find_clients_drop_number_for_server_drop
 }
 
 function find_all_redis_timeout_count() {
