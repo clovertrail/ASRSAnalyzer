@@ -281,12 +281,12 @@ function filter_date_prefix() {
   local timestamp=`date +%Y%m%d%H%M%S`
   local tmpOut=/tmp/appserver${timestamp}.log
   local dateOut=/tmp/appserverdate${timestamp}.txt
-  grep "drop" $app_server_log > $tmpOut
+  egrep "WebSocket closed by the server. Close status NormalClosure|Connection to the service was dropped" $app_server_log > $tmpOut
   # output  [2019:01:24:04:53:29.167]:
   # output  [2019:01:24:04:53:29
   # output [2019:01:24
   awk '{print $1}' $tmpOut| awk -F . '{print $1}'| awk -F : '{printf("%s:%s:%s\n", $1,$2,$3)}'| awk -F \[ '{print $2}'|  sort|uniq > $dateOut
-  local line dateDir
+  local line dateDir cidList i
   while read line
   do
     dateDir=$line
@@ -296,7 +296,17 @@ function filter_date_prefix() {
     sed -i -e 's/\]\://g' $output_dir/$dateDir/drop.txt
     # remove "["
     sed -i -e 's/\[//g' $output_dir/$dateDir/drop.txt
-    awk '{print $1 " " $3}' $output_dir/$dateDir/drop.txt > $output_dir/$dateDir/drop_sum.txt
+    cp $output_dir/$dateDir/drop.txt $output_dir/$dateDir/drop_sum.txt
+    cidList=`awk '{print $NF}' $output_dir/$dateDir/drop.txt`
+    echo "=======Find the connection creation======" >> $output_dir/$dateDir/drop_sum.txt
+    for i in $cidList
+    do
+      if [ ${#i} -eq 36 ]
+      then
+	 grep "cid=$i" $app_server_log >> $output_dir/$dateDir/drop_sum.txt
+      fi
+    done
+    #awk '{print $1 " " $3}' $output_dir/$dateDir/drop.txt > $output_dir/$dateDir/drop_sum.txt
     rm $output_dir/$dateDir/drop.txt
   done < $dateOut
   rm $tmpOut $dateOut
