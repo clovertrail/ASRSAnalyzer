@@ -83,13 +83,30 @@ function trace_server_connections_in_ASRS() {
 function find_server_drop_ASRS() {
  local in=$1
  local tmp_out=/tmp/serverdrop
- local line
+ local line traceId
  grep "ConnectedEnding" $in|grep "SignalRServerConnection" > $tmp_out
  while read line
  do
   timestamp=`echo "$line"|jq "._timestampUtc"|tr -d '"'`
   id=`echo "$line"|jq ".userId"|tr -d '"'`
-  echo "$timestamp $id"
+  traceId=`echo "$line"|jq ".traceId"|tr -d '"'`
+  echo "$timestamp $id $traceId"
+ done < $tmp_out
+ rm $tmp_out
+}
+
+function find_new_server_connection() {
+ local in=$1
+ local tmp_out=/tmp/newserver
+ local line hub traceId
+ grep "NewServerConnection" $in > $tmp_out
+ while read line
+ do
+  timestamp=`echo "$line"|jq "._timestampUtc"|tr -d '"'`
+  id=`echo "$line"|jq ".userId"|tr -d '"'`
+  hub=`echo "$line"|jq ".hub"|tr -d '"'`
+  traceId=`echo "$line"|jq ".traceId"|tr -d '"'`
+  echo "$timestamp $hub $id $traceId"
  done < $tmp_out
  rm $tmp_out
 }
@@ -106,6 +123,10 @@ function find_clients_drop_number_for_server_drop() {
   echo "$timestamp $count"
  done < $tmp_out
  rm $tmp_out
+}
+
+function find_all_ASRS_new_server_connection() {
+  iterate_all_asrs_log find_new_server_connection
 }
 
 function find_all_ASRS_server_drop() {
