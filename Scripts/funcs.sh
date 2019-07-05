@@ -3,14 +3,21 @@ dir=`dirname $0`
 
 function dump_trace_the_same_conn() {
   local traceId=$1
-  local asrs_log=$2
+  local asrs_log=${2}*ASRS.txt
   local tracedLog=`grep $traceId $asrs_log`
   local line timestamp eventName duration startTime endTime
   local url cid uid
   local lifeSpan userId
   local tmpFile=/tmp/traceid`date +%Y%m%d%H%M%S`
-
+  local tmpFileFilter=/tmp/traceidFilter`date +%Y%m%d%H%M%S`
   echo "$tracedLog" > $tmpFile
+  local count=`ls $asrs_log|wc -l`
+  if [ $count -gt 1 ]
+  then
+     awk -F 'txt:' '{print $2}' $tmpFile > $tmpFileFilter
+     rm $tmpFile
+     mv $tmpFileFilter $tmpFile
+  fi
   while read line
   do
     timestamp=`echo "$line"|jq "._timestampUtc"|tr -d '"'`
@@ -22,19 +29,19 @@ function dump_trace_the_same_conn() {
     then
        userId=$uid
     fi
-    if [ "$url" != "null" ] && [ "$duration" == "null" ]
+    if [ "$url" != "null" ] && [ "$eventName" == "RequestStarted" ]
     then
        startTime=$timestamp
        cid=`echo "$url"|awk -F \& '{print $2}'|awk -F = '{print $2}'`
     fi
-    if [ "$duration" != "null" ]
+    if [ "$eventName" == "RequestProcessed" ]
     then
        endTime=$timestamp
        lifeSpan=$duration
     fi
   done < $tmpFile
-  rm $tmpFile
-  echo " $cid $userId $startTime $endTime $lifeSpan"
+  #rm $tmpFile
+  echo "$traceId $cid $userId $startTime $endTime $lifeSpan"
 }
 
 function dump_exception_count() {
@@ -66,15 +73,24 @@ function dump_exception_details() {
 }
 
 function trace_server_connections_in_ASRS() {
-  local in=$1 # ASRS.log
+  local pod=${1}
+  local in=${pod}*ASRS.txt # ASRS.log
   local i traceId line
   local postfix=`date +%Y%m%d%H%M%S`
   local serverConnRaw=/tmp/serverConnRaw${postfix}
-  grep "New server connection" $in > $serverConnRaw
+  local serverFilter=/tmp/serverConnRawFilter${postfix}
+  grep "New server connection" ${in} > $serverConnRaw
+  local count=`ls $in|wc -l`
+  if [ $count -gt 1 ]
+  then
+     awk -F 'txt:' '{print $2}' $serverConnRaw > $serverFilter
+     rm $serverConnRaw
+     mv $serverFilter $serverConnRaw
+  fi
   while read line
   do
     traceId=`echo "$line"|jq ".traceId"|tr -d '"'`
-    dump_trace_the_same_conn $traceId $in
+    dump_trace_the_same_conn $traceId $pod
     #grep $traceId $in
   done < $serverConnRaw
   rm $serverConnRaw
@@ -83,13 +99,15 @@ function trace_server_connections_in_ASRS() {
 function find_server_drop_ASRS() {
  local in=$1
  local tmp_out=/tmp/serverdrop
- local line
+ local line traceId serverId
  grep "ConnectedEnding" $in|grep "SignalRServerConnection" > $tmp_out
  while read line
  do
   timestamp=`echo "$line"|jq "._timestampUtc"|tr -d '"'`
   id=`echo "$line"|jq ".userId"|tr -d '"'`
-  echo "$timestamp $id"
+  traceId=`echo "$line"|jq ".traceId"|tr -d '"'`
+  serverId=`echo "$line"|jq ".connectionId"|tr -d '"'`
+  echo "$timestamp $traceId $serverId $id"
  done < $tmp_out
  rm $tmp_out
 }
@@ -97,13 +115,14 @@ function find_server_drop_ASRS() {
 function find_clients_drop_number_for_server_drop() {
  local in=$1
  local tmp_out=/tmp/serverdrop
- local line count
+ local line count serverId
  grep "client connections connected to server connection" $in > $tmp_out
  while read line
  do
   timestamp=`echo "$line"|jq "._timestampUtc"|tr -d '"'`
   count=`echo "$line"|jq ".count"|tr -d '"'`
-  echo "$timestamp $count"
+  serverId=`echo "$line"|jq ".serverConnectionIds"|tr -d '"'`
+  echo "$timestamp $serverId $count"
  done < $tmp_out
  rm $tmp_out
 }
