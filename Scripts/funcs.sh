@@ -99,7 +99,7 @@ function trace_server_connections_in_ASRS() {
 function find_server_drop_ASRS() {
  local in=$1
  local tmp_out=/tmp/serverdrop
- local line traceId serverId
+ local line traceId serverId timestamp id
  grep "ConnectedEnding" $in|grep "SignalRServerConnection" > $tmp_out
  while read line
  do
@@ -110,6 +110,22 @@ function find_server_drop_ASRS() {
   echo "$timestamp $traceId $serverId $id"
  done < $tmp_out
  rm $tmp_out
+}
+
+function find_server_abort_ASRS() {
+ local in=$1
+ local tmp_out=/tmp/serverabort
+ local line traceId serverConnId userId error
+ grep "AbortConnectionRequested" $in|grep "SignalRServerConnectionContex" >$tmp_out
+ while read line
+ do
+  timestamp=`echo "$line"|jq "._timestampUtc"|tr -d '"'`
+  userId=`echo "$line"|jq ".userId"|tr -d '"'`
+  traceId=`echo "$line"|jq ".traceId"|tr -d '"'`
+  serverConnId=`echo "$line"|jq ".connectionId"|tr -d '"'`
+  error=`echo "$line"|jq ".error"|tr -d '"'`
+  echo "$timestamp $traceId $serverConnId $id $error"
+ done< $tmp_out
 }
 
 function find_new_server_connection() {
@@ -143,8 +159,17 @@ function find_clients_drop_number_for_server_drop() {
  rm $tmp_out
 }
 
+function find_service_shutdown_on_applog() {
+ local in=$1
+ grep "received error message from service: ServiceShutdown" $in
+}
+
 function find_all_ASRS_new_server_connection() {
   iterate_all_asrs_log find_new_server_connection
+}
+
+function find_all_ASRS_server_abort() {
+  iterate_all_asrs_log find_server_abort_ASRS
 }
 
 function find_all_ASRS_server_drop() {
