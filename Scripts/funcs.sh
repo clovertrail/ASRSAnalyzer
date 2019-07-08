@@ -164,6 +164,25 @@ function find_service_shutdown_on_applog() {
  grep "received error message from service: ServiceShutdown" $in
 }
 
+function find_ingress_shutdown() {
+ local in=$1
+ local line timestamp podName eventName
+ local tmp_out=/tmp/ingressShutdown
+ egrep "BeginIngressShutdown|IngressReload" $in > $tmp_out
+ while read line
+ do
+  timestamp=`echo "$line"|jq "._timestampUtc"|tr -d '"'`
+  podName=`echo "$line"|jq ".podName"|tr -d '"'`
+  eventName=`echo "$line"|jq "._eventName"|tr -d '"'`
+  echo "$timestamp $podName $eventName"
+ done < $tmp_out
+ rm $tmp_out
+}
+
+function find_all_ASRS_ingress_shutdown() {
+  iterate_all_asrs_log find_ingress_shutdown
+}
+
 function find_all_ASRS_new_server_connection() {
   iterate_all_asrs_log find_new_server_connection
 }
