@@ -40,7 +40,7 @@ function dump_trace_the_same_conn() {
        lifeSpan=$duration
     fi
   done < $tmpFile
-  #rm $tmpFile
+  rm $tmpFile
   echo "$traceId $cid $userId $startTime $endTime $lifeSpan"
 }
 
