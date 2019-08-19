@@ -1,6 +1,37 @@
 #!/bin/bash
 dir=`dirname $0`
 
+function track_start_join_group() {
+  local line
+  local asrs_log=$1
+  local tmpFile=/tmp/tracegroup`date +%Y%m%d%H%M%S`
+  local groupName timestamp
+  grep "StartJoiningGroup" $asrs_log > $tmpFile
+  while read line
+  do
+    timestamp=`echo "$line"|jq "._timestampUtc"|tr -d '"'`
+    groupName=`echo "$line"|jq ".groupName"|tr -d '"'`
+    echo "$timestamp $groupName"
+  done < $tmpFile
+  rm $tmpFile
+}
+
+function dump_client_connection_info() {
+  local asrs_log=$1
+  local tmpFile=/tmp/traceclient`date +%Y%m%d%H%M%S`
+  grep "Sec-WebSocket-Version" $asrs_log|grep "/client/"|grep "RequestProcessed" > $tmpFile
+  local line lifeSpan userAgent timestamp traceId
+  while read line
+  do
+    traceId=`echo "$line"|jq ".traceId"|tr -d '"'`
+    timestamp=`echo "$line"|jq "._timestampUtc"|tr -d '"'`
+    lifeSpan=`echo "$line"|jq ".duration"|tr -d '"'`
+    userAgent=`echo "$line"|jq ".headers.User-Agent"|tr -d '"'`
+    echo "$timestamp $traceId $lifeSpan $userAgent"
+  done < $tmpFile
+  rm $tmpFile
+}
+
 function dump_trace_the_same_conn() {
   local traceId=$1
   local asrs_log=$2
@@ -125,6 +156,13 @@ function find_clients_drop_number_for_server_drop() {
  rm $tmp_out
 }
 
+function find_all_ASRS_groupnames() {
+  iterate_all_asrs_log track_start_join_group
+}
+
+function find_all_ASRS_client_drop() {
+  iterate_all_asrs_log dump_client_connection_info
+}
 function find_all_ASRS_new_server_connection() {
   iterate_all_asrs_log find_new_server_connection
 }
