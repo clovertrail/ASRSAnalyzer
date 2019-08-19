@@ -26,7 +26,7 @@ function dump_client_connection_info() {
     traceId=`echo "$line"|jq ".traceId"|tr -d '"'`
     timestamp=`echo "$line"|jq "._timestampUtc"|tr -d '"'`
     lifeSpan=`echo "$line"|jq ".duration"|tr -d '"'`
-    userAgent=`echo "$line"|jq ".headers.User-Agent"|tr -d '"'`
+    userAgent=`echo "$line"|jq '.headers["User-Agent"][0]'|tr -d '"'`
     echo "$timestamp $traceId $lifeSpan $userAgent"
   done < $tmpFile
   rm $tmpFile
